@@ -1,5 +1,5 @@
 // Script written by Hannah Strong <stronghannahc@gmail.com> for James Atkins, June 2018
-// Last edited: June 13, 2018
+// Last edited: June 15, 2018
 
 // Script iterates over all specified folders, finds the CSV file containing the current date, and makes a google sheets copy of the CSV file
 // Set to run every morning between 9am and 10am
@@ -32,17 +32,14 @@ function CSVtoGsheet(){
     var name = folder[0] + curDate;
     Logger.log("name is " + name);
     
-    //Check if CSV file with given name exists, move on if it doesn't
-    if(checkFile(name) == true) {
-      //Get data from CSV file with the above filename
-      var csvFile = DriveApp.getFilesByName(name).next();
-      var csvData = Utilities.parseCsv(csvFile.getBlob().getDataAsString());
-    
+    //Check if CSV file with given name exists and get data, move on if it doesn't
+    var csvData = checkFile(name);
+    if(csvData) {  
       //Create sheet with this data, move it to the current folder
       createSS(name, folder[1], csvData);
+
     }
   }
-  
 }
 
 
@@ -66,24 +63,38 @@ function createSS(name, folderId, csvData) {
   folder.addFile(newSsFile);
 }
 
+
+
+
+// Check if 1 or more CSV files with the given filename exist, returns the data from the most recently edited if any do
 function checkFile(filename){
-  var status;
-  var file  = DriveApp.getFilesByName(filename)
+  var status = false;
+  var csvData;
+  var files  = DriveApp.getFilesByName(filename);
   
-  status = file.hasNext();
-  //Does not exist
-  if(!file.hasNext()){
-  status =  file.hasNext();
-  }
-  //Does exist
-  else{
-  status =  file.hasNext();
-  }
-  Logger.log("Existence is " + status)
-  return status;
+   while (files.hasNext()) {
+     var file = files.next();
+     var fileType = file.getMimeType();
+     Logger.log("filetype is " + fileType);
+     
+     if (fileType == MimeType.CSV) {
+       status = true;
+       csvData = Utilities.parseCsv(file.getBlob().getDataAsString());
+       break;
+     }
+ }
+  Logger.log("File status is " + status);
+  return csvData;
 }
 
 
+// Test function to run other functions with parameters
+function runIt() {
+  var testVar = checkFile("Test 2018-06-12");
+  if (testVar) {
+    Logger.log("yes" );
+  }
+}
 
 
 function doNothing(){
