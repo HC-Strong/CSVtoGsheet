@@ -71,6 +71,35 @@ function checkFileFormat(filename){
  }
   
 }
+
+function testSendingEmail() {
+  var emailAddress = "stronghannahc@gmail.com";
+  
+  var emailSubject = "CSV to Gsheet script completed";
+  var emailBody = "The CSV to Google Sheets conversion has completed.\n";
+  var data = ["Walmart", "Target", "HEB", "CVS"];
+  
+ MailApp.sendEmail(emailAddress, emailSubject, emailBody+data, {
+     name: 'CSV to Google Sheet Conversion Script'
+ });
+}
+
+
+
+
+function refreshUserProps() {
+  var userProperties = PropertiesService.getUserProperties();
+  var loopCounter = Number(userProperties.getProperty('loopCounter'));
+  userProperties.setProperty('loopCounter', loopCounter+1);
+  Logger.log(loopCounter);
+  loopCounter = Number(userProperties.getProperty('loopCounter'));
+    Logger.log(loopCounter);
+}
+
+
+
+
+
 //
 //function checkFile(filename){
 //  var status;

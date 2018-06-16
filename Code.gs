@@ -1,8 +1,28 @@
 // Script written by Hannah Strong <stronghannahc@gmail.com> for James Atkins, June 2018
-// Last edited: June 15, 2018
+// Last edited: June 16, 2018
 
-// Script iterates over all specified folders, finds the CSV file containing the current date, and makes a google sheets copy of the CSV file
-// Set to run every morning between 9am and 10am
+// Script iterates over all specified folders, finds the CSV file containing the current date, and makes a google sheets copy of the CSV file if one doesn't already exist
+// Set to run every morning between 7 and 8am Pacific time (5 and 6 Central) and then run every 5 minutes till it completes all brands or hits 30 cycles
+// Whenc completed or timed out, it sends an email to the specified recipient(s) stating which worked and which failed
+
+
+
+
+// This function is used to for the timed trigger to run every morning
+// Resets the counter property and starts a minutes-based trigger to check for csv files periodically
+function launch() {
+  
+  // Set number of iterations to check before declaring the script complete even if not all files are there and stores as userProperty to use as counter across times the trigger runs
+  var stopPoint = 30;
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('timeoutCounter', stopPoint);
+  var timeoutCounter = Number(userProperties.getProperty('timeoutCounter'));
+  Logger.log("Starting timeout counter is " + timeoutCounter);
+  
+  createMinuteTrigger(5);
+  emailStart();
+  
+}
 
 
 //Initiate conversion with this function
@@ -12,13 +32,16 @@ function CSVtoGsheet(){
   // CHANGE FOLDER IDS AND BRANDS HERE
   //
   var folders = [
-    ["Amazon", "139uxTSFeemdBkN78R23KM1QdeMLP3j5P"],
-    ["CVS", "1Xee8JJfmcFsL8Hsp2ZS-cTAqtUOlv0RX"],
-    ["HEB", "1PIkyp8SQsYBxJxm2CVeDIuiDQtlsyO_f"],
+    ["Amazon", "139uxTSFeemdBkN78R23KM1QdeMLP3j5P",],
+    ["CVS", "1Xee8JJfmcFsL8Hsp2ZS-cTAqtUOlv0RX",],
+    ["HEB", "1PIkyp8SQsYBxJxm2CVeDIuiDQtlsyO_f",],
     ["Target", "1oqOFUkFvchU3nLcivoniyskmWHNjp3C_"],
     ["Walgreens", "1FHgHb-6BGF-wycHIMaxbm3pDpm8cPVZ_"],
     ["Walmart", "16Nkr392QgxgD5NuRFb44yA1HyjkRkZX6"]
   ];
+  var completed = [];
+  var failed = [];
+  
   
   //Finds current date and formats to match dates in CSV filenames
   var curDateRaw = new Date();
@@ -34,13 +57,39 @@ function CSVtoGsheet(){
     
     //Check if CSV file with given name exists and get data, move on if it doesn't
     var csvData = checkFile(name);
-    if(csvData) {  
-      //Create sheet with this data, move it to the current folder
-      createSS(name, folder[1], csvData);
-
+    if(csvData) {
+      if (!checkForGSheet(name)) {
+        //Create sheet with this data, move it to the current folder
+        createSS(name, folder[1], csvData);
+      }
+      completed.push(folder[0]);
+    } else {
+      failed.push(folder[0]);
     }
   }
+  Logger.log("There are " + completed.length + " completed folders. They are: " + completed + "   and there are " + failed.length + " failed folders. They are: " +  failed);
+  
+  var userProperties = PropertiesService.getUserProperties();
+  var timeoutCounter = Number(userProperties.getProperty('timeoutCounter')) - 1;
+  userProperties.setProperty('timeoutCounter', timeoutCounter);
+  Logger.log("timeout counter is: " + timeoutCounter);
+  
+  //Logger.log("failed length is " + failed.length());
+  //Logger.log("failed length?" + failed + "[[[[[" + failed.length);
+  
+  
+  if(failed.length == 0 || timeoutCounter == 0) {
+     // Send email when script completes
+     sendEmailSummary(completed, failed, curDate);
+     resetTriggers()
+     Logger.log("Finished");
+  } else {
+   Logger.log("Will take another pass."); 
+  }
 }
+
+
+
 
 
 function createSS(name, folderId, csvData) {
@@ -62,6 +111,7 @@ function createSS(name, folderId, csvData) {
   newSsFile.getParents().next().removeFile(newSsFile);
   folder.addFile(newSsFile);
 }
+
 
 
 
@@ -88,6 +138,65 @@ function checkFile(filename){
 }
 
 
+
+
+
+// Checks if google sheet already exists
+function checkForGSheet(filename){
+  var status = false;
+  var files  = DriveApp.getFilesByName(filename);
+  
+   while (files.hasNext()) {
+     var file = files.next();
+     var fileType = file.getMimeType();
+     Logger.log("Checking for gsheets, filetype is " + fileType);
+     
+     if (fileType == MimeType.GOOGLE_SHEETS) {
+       status = true;
+       break;
+     }
+ }
+  Logger.log("gsheet status is " + status);
+  return status;
+}
+
+
+
+
+
+function sendEmailSummary(completed, failed, date) {
+
+  var emailAddress1 ="Jatkins@otcmeds.com";
+  var emailAddress2 = "stronghannahc@gmail.com";
+  
+  var emailSubject = "CSV to Gsheet script completed - " + date;
+  var emailBody = "The CSV to Google Sheets conversion has completed for" + date + ".\n\nThe following files were successfully converted: \n  • " + completed.join("\n  • ") + "\n\nThe following .csv files were not found: \n  • " + failed.join("\n  • ");
+  //var data = ["Walmart", "Target", "HEB", "CVS"];
+  
+// MailApp.sendEmail(emailAddress1, emailSubject, emailBody, {
+//     name: 'CSV to Google Sheet Conversion Script'
+// });
+ MailApp.sendEmail(emailAddress2, emailSubject, emailBody, {
+     name: 'CSV to Google Sheet Conversion Script'
+ });
+}
+
+
+function emailStart() {
+  var emailAddress = "stronghannahc@gmail.com";
+  
+  var emailSubject = "CSV to Gsheet script started";
+  var emailBody = "The script has begun"
+  
+ MailApp.sendEmail(emailAddress, emailSubject, emailBody, {
+     name: 'CSV to Google Sheet Conversion Script'
+ });
+}
+
+
+
+
+
 // Test function to run other functions with parameters
 function runIt() {
   var testVar = checkFile("Test 2018-06-12");
@@ -97,6 +206,45 @@ function runIt() {
 }
 
 
+
+
+
+function createMinuteTrigger(minutes) {
+  
+  //var minutes = 5
+  
+  // Trigger every 1 minutes.
+  ScriptApp.newTrigger('CSVtoGsheet')
+      .timeBased()
+      .everyMinutes(minutes)
+      .create();
+}
+
+
+
+//Deletes all triggers to remove any minutes based triggers, then creates a new daily trigger
+function resetTriggers() {
+  
+  // Loop over all triggers and delete them
+  var allTriggers = ScriptApp.getProjectTriggers();
+  
+  for (var i = 0; i < allTriggers.length; i++) {
+    ScriptApp.deleteTrigger(allTriggers[i]);
+  }
+  
+  // Trigger every day between 7 and 8am Central time (5 to 6am Pacific)
+  ScriptApp.newTrigger('launch')
+      .timeBased()
+      .everyDays(1)
+      .atHour(5)
+      .create();
+}
+
+
+
+
+
 function doNothing(){
   //this function here for testing purposes so a trigger can easily be set to do nothing without deleting it
+  Logger.log("nothing was done");
 }
