@@ -1,5 +1,5 @@
 // Script written by Hannah Strong <stronghannahc@gmail.com> for James Atkins, June 2018
-// Last edited: June 16, 2018
+// Last edited: November 12, 2018
 
 // Script iterates over all specified folders, finds the CSV file containing the current date, and makes a google sheets copy of the CSV file if one doesn't already exist
 // Set to run every morning between 7 and 8am Pacific time (5 and 6 Central) and then run every 5 minutes till it completes all brands or hits 30 cycles
@@ -237,6 +237,14 @@ function resetTriggers() {
       .timeBased()
       .everyDays(1)
       .atHour(7)
+      .create();
+  
+  
+  // Trigger every day between 1am and 2am Pacific time
+  ScriptApp.newTrigger('DeleteOldFiles')
+      .timeBased()
+      .everyDays(1)
+      .atHour(1)
       .create();
 }
 
