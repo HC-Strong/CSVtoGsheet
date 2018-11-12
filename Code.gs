@@ -32,7 +32,7 @@ function CSVtoGsheet(){
   // CHANGE FOLDER IDS AND BRANDS HERE
   //
   var folders = [
-    ["Amazon", "139uxTSFeemdBkN78R23KM1QdeMLP3j5P",],
+    //["Amazon", "139uxTSFeemdBkN78R23KM1QdeMLP3j5P",],
     ["CVS", "1Xee8JJfmcFsL8Hsp2ZS-cTAqtUOlv0RX",],
     ["HEB", "1PIkyp8SQsYBxJxm2CVeDIuiDQtlsyO_f",],
     ["Target", "1oqOFUkFvchU3nLcivoniyskmWHNjp3C_"],
@@ -236,7 +236,7 @@ function resetTriggers() {
   ScriptApp.newTrigger('launch')
       .timeBased()
       .everyDays(1)
-      .atHour(5)
+      .atHour(7)
       .create();
 }
 
